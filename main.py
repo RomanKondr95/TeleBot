@@ -128,9 +128,9 @@ def callback(call):
         selected_services += ''.join(f'{key} - {value}') + ' ' + 'руб.' + ', '
     serv_for_db += key + ', '
     price_for_db += value
-    bot.send_message(call.message.chat.id, f'Вы выбрали: {selected_services[:-2]} Чтобы выбрать дату и время введите "/запись" либо добавьте еще услуги')
+    bot.send_message(call.message.chat.id, f'Вы выбрали: {selected_services[:-2]} Чтобы выбрать дату и время введите "/record" либо добавьте еще услуги')
     
-@bot.message_handler(commands=['запись'])
+@bot.message_handler(commands=['record'])
 def handle_booking(message):
     chat_id = message.chat.id
     # создаем клавиатуру с выбором даты
