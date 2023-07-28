@@ -26,6 +26,7 @@ time_str = None
 records = {}
 name = None
 lastn = None
+phone = ''
 
 
 def create_db():
@@ -35,6 +36,7 @@ def create_db():
 create table if not exists USERS (
             name text,
             lastname text,
+            phone text,
             service text,
             price integer,
             date text,
@@ -46,12 +48,12 @@ create table if not exists USERS (
     cur.close()
     conn.close()
 
-def insert_db(name,lastn,serv_for_db,price_for_db,date_str,time_str):
+def insert_db(name,lastn,phone,serv_for_db,price_for_db,date_str,time_str):
     conn = sqlite3.connect('database.sqlite')
     cur = conn.cursor()
     cur.execute("""
-insert into USERS values (?,?,?,?,?,?)
-            """,(name,lastn,serv_for_db,price_for_db,date_str,time_str))
+insert into USERS values (?,?,?,?,?,?,?)
+            """,(name,lastn,phone,serv_for_db,price_for_db,date_str,time_str))
     conn.commit()
     cur.close()
     conn.close()
@@ -61,12 +63,13 @@ def excel():
     workbook = Workbook('Happy.xlsx')
     worksheet = workbook.add_worksheet()
     worksheet.write(0,0,'#')
-    worksheet.write(0,1,'name')
-    worksheet.write(0,2,'lastname')
-    worksheet.write(0,3,'services')
-    worksheet.write(0,4,'price')
-    worksheet.write(0,5,'date')
-    worksheet.write(0,6,'time')
+    worksheet.write(0,1,'Имя')
+    worksheet.write(0,2,'Фамилия')
+    worksheet.write(0,3,'Номер тел.')
+    worksheet.write(0,4,'Услуги')
+    worksheet.write(0,5,'Стоимость')
+    worksheet.write(0,6,'Дата')
+    worksheet.write(0,7,'Время')
     con = sqlite3.connect('database.sqlite')
     cur = con.cursor()
     file = cur.execute("""SELECT * from USERS""")
@@ -99,7 +102,14 @@ def first_name(message):
 def last_name(message):
     global lastn
     lastn = message.text.strip()
+    bot.send_message(message.chat.id, 'Введите пожалуйста ваш номер телефона')
+    bot.register_next_step_handler(message,enter_phone)
+
+def enter_phone(message):
+    global phone
+    phone = message.text.strip()
     button(message)
+
 @bot.message_handler(commands=['button'])
 def button(message):
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -175,7 +185,7 @@ def handle_time(message):
             
     except ValueError:
         bot.send_message(chat_id, 'Неверный формат времени! Попробуйте еще раз.',reply_markup=None)
-    insert_db(name,lastn,serv_for_db[:-2],price_for_db,date_str,time_str)
+    insert_db(name,lastn,phone,serv_for_db[:-2],price_for_db,date_str,time_str)
     excel()
     
     
