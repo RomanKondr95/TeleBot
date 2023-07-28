@@ -3,6 +3,7 @@ import sqlite3
 from telebot import types
 from tokennn import token
 from datetime import datetime,timedelta
+from xlsxwriter.workbook import Workbook
 
 bot = telebot.TeleBot(token)
 
@@ -27,8 +28,7 @@ name = None
 lastn = None
 
 
-@bot.message_handler(commands=['start'])
-def start(message):
+def create_db():
     conn = sqlite3.connect('database.sqlite')
     cur = conn.cursor()
     cur.execute("""
@@ -45,6 +45,47 @@ create table if not exists USERS (
     conn.commit()
     cur.close()
     conn.close()
+
+def insert_db(name,lastn,serv_for_db,price_for_db,date_str,time_str):
+    conn = sqlite3.connect('database.sqlite')
+    cur = conn.cursor()
+    cur.execute("""
+insert into USERS values (?,?,?,?,?,?)
+            """,(name,lastn,serv_for_db,price_for_db,date_str,time_str))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def excel():
+    workbook = Workbook('Happy.xlsx')
+    worksheet = workbook.add_worksheet()
+    worksheet.write(0,0,'#')
+    worksheet.write(0,1,'name')
+    worksheet.write(0,2,'lastname')
+    worksheet.write(0,3,'services')
+    worksheet.write(0,4,'price')
+    worksheet.write(0,5,'date')
+    worksheet.write(0,6,'time')
+    con = sqlite3.connect('database.sqlite')
+    cur = con.cursor()
+    file = cur.execute("""SELECT * from USERS""")
+    for i, row in enumerate(file):
+        for j, value in enumerate(row):
+            worksheet.write(i+1, j+1, value)
+    workbook.close()
+
+# на всякий случай. Не уверен,что буду применять
+def delete_db():
+    con = sqlite3.connect('database.sqlite')
+    cur = con.cursor()
+    cur.execute("""DELETE from USERS""")
+    con.commit()
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    create_db()
 
     bot.send_message(message.chat.id, 'Добрый день! Начинаем регистрацию... Введите пожалуйста ваше имя')
     bot.register_next_step_handler(message,first_name)
@@ -85,9 +126,9 @@ def callback(call):
     selected_services = ''        
     for key,value in selected_serv.items():
         selected_services += ''.join(f'{key} - {value}') + ' ' + 'руб.' + ', '
-    serv_for_db += key + ' '
+    serv_for_db += key + ', '
     price_for_db += value
-    bot.send_message(call.message.chat.id, f'Вы выбрали: {selected_services[:-2]} Чтобы выбрать дату и время введите /запись либо добавьте еще услуги')
+    bot.send_message(call.message.chat.id, f'Вы выбрали: {selected_services[:-2]} Чтобы выбрать дату и время введите "/запись" либо добавьте еще услуги')
     
 @bot.message_handler(commands=['запись'])
 def handle_booking(message):
@@ -134,15 +175,9 @@ def handle_time(message):
             
     except ValueError:
         bot.send_message(chat_id, 'Неверный формат времени! Попробуйте еще раз.',reply_markup=None)
-    conn = sqlite3.connect('database.sqlite')
-    cur = conn.cursor()
-    cur.execute("""
-insert into USERS values (?,?,?,?,?,?)
-            """,(name,lastn,serv_for_db,price_for_db,date_str,time_str))
-    conn.commit()
-    cur.close()
-    conn.close()
-    bot.stop_polling()
+    insert_db(name,lastn,serv_for_db[:-2],price_for_db,date_str,time_str)
+    excel()
+    
     
 # создание клавиатуры с выбором даты
 def create_date_keyboard():
